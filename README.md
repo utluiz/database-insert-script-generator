@@ -4,10 +4,11 @@ database-insert-script-generator
 Simple procedures for generation of INSERT and UPDATE scripts from a database table. 
 Both SQL Server and Oracle version are available.
 
-Examples for SQL Server
-
---inibe contagem de resultados dos selects (saída desnecessária)
+### Examples for SQL Server
+```sql
+-- inibe contagem de resultados dos selects (saída desnecessária)
 SET NOCOUNT ON
+
 EXEC GET_INSERT_SCRIPT
     @TABELA = 'TAB1',
     @BANCO_ORIGEM = 'MINHA_BASE',
@@ -33,3 +34,6 @@ EXEC GET_INSERT_SCRIPT
     @BANCO_DESTINO = DEFAULT,
     @OWNER = DEFAULT,
     @WHERE = 'CODBOLETO = 123'
+```
+### Oracle
+Oracle version comes with less features because my coalleagues and I do not use it very often. If you need something, please contact me.
