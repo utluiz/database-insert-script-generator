@@ -22,6 +22,7 @@ AS
 		@TMP_QUERY		VARCHAR(4000),
 		@TMP_UPDATE		VARCHAR(4000),
 		@TMP_IFEXISTS	VARCHAR(4000),
+		@TMP_ORDER		VARCHAR(4000),
 		
 		@NOME_CAMPO		VARCHAR(50),
 		@TIPO_CAMPO		VARCHAR(50),
@@ -104,6 +105,7 @@ BEGIN
 		SET @TMP_QUERY = 'SELECT '
 		SET @TMP_UPDATE = 'SELECT '
 		SET @TMP_IFEXISTS = '' --'IF EXISTS(SELECT 1 FROM ' + @ORIGEM + ' WHERE '
+		SET @TMP_ORDER = ''
 	
 		-- cursor para iterar sobre as colunas da query
 		DECLARE CURSCOL CURSOR FAST_FORWARD FOR 
@@ -193,7 +195,12 @@ BEGIN
 				SET @K = @K + 1
 				
 				IF @K > 1
+				BEGIN
 					SET @TMP_IFEXISTS = @TMP_IFEXISTS + ' + '' AND '' + '
+					SET @TMP_ORDER = @TMP_ORDER + ', ' + @NOME_CAMPO
+				END
+				ELSE
+					SET @TMP_ORDER = @NOME_CAMPO
 					
 				SET @TMP_IFEXISTS = @TMP_IFEXISTS + '''' + @NOME_CAMPO + ''' + '' = '' + ' +
 				CASE
@@ -234,25 +241,28 @@ BEGIN
 		--finaliza cursor das colunas
 		CLOSE CURSCOL
 		DEALLOCATE CURSCOL
-		
+
 		--adiciona última linha de campos
 		INSERT INTO @TAB_CAMPOS SELECT @TMP_CAMPOS + ')'
 		
 		--executa select para pegar valores
 		SET @N = @N + 1
-		SET @QUERY = @TMP_QUERY + ', ' + convert(varchar, @N) + ' FROM ' + @ORIGEM + @WHERE
+		SET @QUERY = @TMP_QUERY + ', ' + convert(varchar, @N) + ' FROM ' + @ORIGEM + @WHERE 
+			+ CASE WHEN @TMP_ORDER IS NULL OR @TMP_ORDER = '' THEN '' ELSE ' ORDER BY ' + @TMP_ORDER END
 		INSERT INTO @TAB_VALORES EXEC SP_EXECUTESQL @QUERY
 		
 		IF @UPDATE_ON_EXISTS > 0
 		BEGIN
-			SET @QUERY = @TMP_UPDATE + ', ' + convert(varchar, @N) + ' FROM ' + @ORIGEM + @WHERE
+			SET @QUERY = @TMP_UPDATE + ', ' + convert(varchar, @N) + ' FROM ' + @ORIGEM + @WHERE + 
+				+ CASE WHEN @TMP_ORDER IS NULL OR @TMP_ORDER = '' THEN '' ELSE ' ORDER BY ' + @TMP_ORDER END
 			INSERT INTO @TAB_UPDATE EXEC SP_EXECUTESQL @QUERY
 		END		
 
 		--executa select para pegar verificações		
 		IF @K > 0
 		BEGIN
-			SET @QUERY = 'SELECT ' + @TMP_IFEXISTS + ' FROM ' + @ORIGEM + @WHERE
+			SET @QUERY = 'SELECT ' + @TMP_IFEXISTS + ' FROM ' + @ORIGEM + @WHERE + 
+				+ CASE WHEN @TMP_ORDER IS NULL OR @TMP_ORDER = '' THEN '' ELSE ' ORDER BY ' + @TMP_ORDER END
 			INSERT INTO @TAB_IFEXISTS EXEC SP_EXECUTESQL @QUERY
 		END
 		
